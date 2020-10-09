@@ -1,17 +1,28 @@
-// function _eventListener($modal, event, selectorList, create = true) {
-//   for (selector of selectorList) {
-//     const $node = $modal.querySelector(selector)
-    
-//     if ($node) {
-//       create ? 
-//         $node.addEventListener(event, e => {
-//             e.target === $node && this.close()
-//           }) :
-//         $node.removeEventListener(event, this.close)
-//     }
-//   } 
-// }
+Element.prototype.appendAfter = function(node) {
+  node.parentNode.insertBefore(this, node.nextSibling)
+}
 
+function noop() {}
+
+function _createModalFooter(buttons = []) {
+  if (!buttons.length) {
+    return document.createElement('div')
+  }
+
+  const footer = document.createElement('footer')
+  footer.classList.add('modal-footer')
+
+  buttons.forEach(btn => {
+    const $btn = document.createElement('button')
+    $btn.textContent = btn.text
+    $btn.classList.add(`btn-${btn.type || 'secondary'}`)
+    $btn.onclick = btn.handler || noop
+
+    footer.appendChild($btn)
+  })
+
+  return footer
+}
 
 function _createModal(options) {
   const DEFAULT_WIDTH = '600px'
@@ -27,13 +38,13 @@ function _createModal(options) {
         <article class="modal-body" data-content>
           ${options.content || ''}
         </article>
-        <footer class="modal-footer">
-          <button type="button">Ok</button>
-          <button type="button">Cancel</button>
-        </footer>
       </div>
     </div>
   `)
+
+  const footer = _createModalFooter(options.footerButtons)
+  footer.appendAfter(modal.querySelector('[data-content]'))
+
   document.body.appendChild(modal)
 
   return modal
@@ -59,13 +70,12 @@ $.modal = function(options) {
       setTimeout(() => {
         $modal.classList.remove('hide')
         closing = false
+        
+        if (typeof options.onClose === 'function') {
+          options.onClose()
+        }
       }, ANIMATION_SPEED)
     },
-    // destroy() {
-    //   // _eventListener.call(this, $modal, 'click', ['.modal-close', '.modal-overlay'], false)
-
-    //   $modal.remove()
-    // },
   }
 
   const listener = e => {
@@ -76,12 +86,11 @@ $.modal = function(options) {
 
   $modal.addEventListener('click', listener)
 
-  // _eventListener.call(modal, $modal, 'click', ['.modal-close', '.modal-overlay'])
   return Object.assign({}, modal, {
     destroy() {
       $modal.remove()
       $modal.removeEventListener('click', listener)
-      // _eventListener.call(this, $modal, 'click', ['.modal-close', '.modal-overlay'])
+  
       destroyed = true
     },
     setContent(html = '') {
